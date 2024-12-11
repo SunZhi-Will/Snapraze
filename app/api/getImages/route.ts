@@ -8,6 +8,16 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+interface CloudinaryResource {
+    public_id: string;
+    secure_url: string;
+    created_at: string;
+}
+
+interface CloudinaryResponse {
+    resources: CloudinaryResource[];
+}
+
 export const GET = async () => {
     try {
         // 獲取原始圖片
@@ -41,10 +51,10 @@ export const GET = async () => {
         });
 
         // 格式化返回數據，並檢查是否有對應的編輯版本
-        const images = (originalImages as any).resources.map((resource: any) => {
+        const images = (originalImages as CloudinaryResponse).resources.map((resource: CloudinaryResource) => {
             const baseId = resource.public_id.replace('uploads/', '');
-            const editedVersion = (editedImages as any).resources.find(
-                (edited: any) => edited.public_id === `edit/uploads/${baseId}`
+            const editedVersion = (editedImages as CloudinaryResponse).resources.find(
+                (edited: CloudinaryResource) => edited.public_id === `edit/uploads/${baseId}`
             );
 
             return {

@@ -8,6 +8,12 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// 定義 Cloudinary 上傳結果的介面
+interface CloudinaryUploadResult {
+    secure_url: string;
+    // 可以根據需要添加其他 Cloudinary 返回的屬性
+}
+
 export async function POST(request: Request) {
     try {
         const { id, imageData } = await request.json();
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            url: (uploadResult as any).secure_url
+            url: (uploadResult as CloudinaryUploadResult).secure_url
         });
 
     } catch (error) {

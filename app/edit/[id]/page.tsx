@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as fabric from 'fabric'; // v6
 import {
     Type,
@@ -12,6 +12,16 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
+import Image from 'next/image';
+
+interface CanvasJSON {
+    backgroundImage?: {
+        crossOrigin: string;
+        src: string;
+        [key: string]: unknown;
+    };
+    [key: string]: unknown;
+}
 
 export default function EditPage({ params }: { params: { id: string } }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -68,7 +78,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 }
             }
         };
-    }, [params.id]);
+    }, [params.id, router]);
 
     const initCanvas = async (url: string) => {
         if (!canvasRef.current) return;
@@ -86,7 +96,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
         try {
             const loadImage = () => {
                 return new Promise<HTMLImageElement>((resolve) => {
-                    const img = new Image();
+                    const img = document.createElement('img');
                     img.crossOrigin = 'anonymous';
                     img.onload = () => resolve(img);
                     img.src = url;
@@ -137,7 +147,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
             // 初始化時保存第一個歷史記錄
             setTimeout(() => {
-                const initialJson = JSON.stringify((newCanvas as any).toJSON(['backgroundImage']));
+                const initialJson = JSON.stringify((newCanvas as fabric.Canvas).toJSON());
                 setHistory([initialJson]);
                 setHistoryIndex(0);
             }, 100);
@@ -228,7 +238,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 throw new Error('儲存失敗');
             }
 
-            const data = await response.json();
+            await response.json();
             toast.success('儲存成功', { id: 'save' });
             // 可以選擇重定向到比對頁面
             // router.push(`/compare/${params.id}`);
@@ -238,16 +248,13 @@ export default function EditPage({ params }: { params: { id: string } }) {
         }
     };
 
-    const saveToHistory = () => {
+    const saveToHistory = useCallback(() => {
         if (!canvas) return;
-
         try {
-            // 確保景圖片資訊被保存
-            let json = JSON.stringify((canvas as any).toJSON(['backgroundImage', 'crossOrigin', 'src', 'width', 'height']));
+            let json = JSON.stringify((canvas as fabric.Canvas).toJSON());
             if (!json) return;
 
-            // 檢查JSON中是否包含背景圖片資訊
-            const jsonObj = JSON.parse(json);
+            const jsonObj = JSON.parse(json) as CanvasJSON;
             if (!jsonObj.backgroundImage) {
                 console.warn('背景圖片失，重新加入');
                 if (canvas.backgroundImage) {
@@ -269,9 +276,9 @@ export default function EditPage({ params }: { params: { id: string } }) {
             console.error('保存歷史記錄失敗:', error);
             toast.error('保存歷史記錄失敗');
         }
-    };
+    }, [canvas, history, historyIndex, imageUrl]);
 
-    const undo = () => {
+    const undo = useCallback(() => {
         if (!canvas || historyIndex <= 0) return;
         setIsHistoryAction(true);
         try {
@@ -281,7 +288,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 throw new Error('歷史記錄無效');
             }
 
-            (canvas as any).loadFromJSON(json).then(function () {
+            (canvas as fabric.Canvas).loadFromJSON(json).then(function () {
                 // 確保背景圖片正確載入
                 if (canvas.backgroundImage) {
                     const bgImage = canvas.backgroundImage as fabric.Image;
@@ -300,14 +307,14 @@ export default function EditPage({ params }: { params: { id: string } }) {
             toast.error('復原失敗');
             setIsHistoryAction(false);
         }
-    };
+    }, [canvas, historyIndex, history, imageUrl]);
 
-    const redo = React.useCallback(() => {
+    const redo = useCallback(() => {
         if (!canvas || historyIndex >= history.length - 1) return;
         setIsHistoryAction(true);
         const newIndex = historyIndex + 1;
         try {
-            (canvas as any).loadFromJSON(history[newIndex]).then(function () {
+            (canvas as fabric.Canvas).loadFromJSON(history[newIndex]).then(function () {
                 if (canvas.backgroundImage) {
                     const bgImage = canvas.backgroundImage as fabric.Image;
                     bgImage.set('crossOrigin', 'anonymous');
@@ -315,17 +322,16 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 }
                 canvas.renderAll();
                 setHistoryIndex(newIndex);
-                // 在所有操作完成後才重置 isHistoryAction
                 setTimeout(() => {
                     setIsHistoryAction(false);
                 }, 100);
             })
-        } catch (error) {
+        } catch {
             setIsHistoryAction(false);
         }
-    }, [canvas, historyIndex, history]);
+    }, [canvas, historyIndex, history, imageUrl]);
 
-    const deleteSelected = () => {
+    const deleteSelected = useCallback(() => {
         if (!canvas) return;
         const activeObjects = canvas.getActiveObjects();
         if (activeObjects.length > 0) {
@@ -336,7 +342,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             canvas.renderAll();
             saveToHistory();
         }
-    };
+    }, [canvas, saveToHistory]);
 
     useEffect(() => {
         if (!canvas) return;
@@ -357,7 +363,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             canvas.off('object:modified', handleModification);
             canvas.off('object:removed', handleModification);
         };
-    }, [canvas, historyIndex, isHistoryAction]);
+    }, [canvas, historyIndex, isHistoryAction, saveToHistory]);
 
     useEffect(() => {
         const handleKeyboard = (e: KeyboardEvent) => {
@@ -514,9 +520,11 @@ export default function EditPage({ params }: { params: { id: string } }) {
                     // 比較模式：在小螢幕上改為上下排列
                     <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0">
                         <div className="relative">
-                            <img
+                            <Image
                                 src={originalUrl}
                                 alt="原圖"
+                                width={800}
+                                height={600}
                                 className="max-w-full sm:max-h-[80vh] object-contain"
                             />
                             <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">
@@ -524,9 +532,11 @@ export default function EditPage({ params }: { params: { id: string } }) {
                             </div>
                         </div>
                         <div className="relative">
-                            <img
+                            <Image
                                 src={editUrl}
                                 alt="編輯圖"
+                                width={800}
+                                height={600}
                                 className="max-w-full sm:max-h-[80vh] object-contain"
                             />
                             <div className="absolute top-2 left-2 bg-black/50 text-white px-2 py-1 rounded text-sm">

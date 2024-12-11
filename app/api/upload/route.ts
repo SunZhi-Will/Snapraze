@@ -8,6 +8,12 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// 添加 Cloudinary 上傳結果的類型定義
+interface CloudinaryUploadResult {
+    secure_url: string;
+    public_id: string;
+}
+
 export const POST = async (request: Request) => {
     try {
         // 获取文件数据
@@ -57,8 +63,8 @@ export const POST = async (request: Request) => {
         // 返回上传结果
         return NextResponse.json({
             message: 'Upload successful',
-            imageUrl: (uploadResult as any).secure_url,
-            imageId: (uploadResult as any).public_id
+            imageUrl: (uploadResult as CloudinaryUploadResult).secure_url,
+            imageId: (uploadResult as CloudinaryUploadResult).public_id
         });
 
     } catch (error) {
@@ -67,12 +73,5 @@ export const POST = async (request: Request) => {
             { error: 'Upload failed', details: (error as Error).message },
             { status: 500 }
         );
-    }
-};
-
-// 配置以支持文件上传
-export const config = {
-    api: {
-        bodyParser: false
     }
 };

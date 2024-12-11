@@ -46,7 +46,7 @@ export async function GET(request: Request) {
                 editId: edit.public_id,
                 editUrl: edit.secure_url,
             };
-        } catch (error) {
+        } catch {
             // 如果找不到編輯版本，靜默失敗，只返回原始圖片
             console.log(`未找到圖片 ${id} 的編輯版本`);
         }
@@ -54,19 +54,11 @@ export async function GET(request: Request) {
         return NextResponse.json(response);
 
     } catch (error) {
-        // 改進錯誤處理和日誌記錄
-        console.error('Cloudinary 錯誤詳情:', {
-            message: (error as Error).message,
-            stack: (error as Error).stack,
+        // 修正方式 1：使用錯誤訊息
+        console.error('獲取圖片時發生錯誤:', error);
+        return new Response(JSON.stringify({ error: '獲取圖片失敗' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
         });
-
-        return NextResponse.json(
-            {
-                error: '獲取圖片失敗',
-                details: (error as Error).message,
-                timestamp: new Date().toISOString()
-            },
-            { status: 500 }
-        );
     }
 }

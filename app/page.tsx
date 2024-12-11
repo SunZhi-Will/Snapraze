@@ -5,12 +5,12 @@ import {
   ImageIcon,
   Trash2,
   Plus,
-  X
 } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import Image from 'next/image';
 
 type ImageItem = {
   id: string;
@@ -37,7 +37,7 @@ const ImageGallery = () => {
         const data = await response.json();
         setImages(data.images);
       } catch (error) {
-        toast.error(`載入圖片��敗: ${(error as Error).message}`);
+        toast.error(`載入圖片敗: ${(error as Error).message}`);
       } finally {
         setIsLoading(false);
       }
@@ -88,7 +88,7 @@ const ImageGallery = () => {
     });
 
     try {
-      // 使用 Promise.all 同時處理多個文件上傳
+      // 使用 Promise.all 同時處理多���文件上傳
       const uploadPromises = validFiles.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -249,10 +249,11 @@ const ImageGallery = () => {
                   key={image.id}
                   className="relative group cursor-pointer aspect-square"
                 >
-                  <img
+                  <Image
                     src={image.url}
                     alt="Uploaded"
-                    className="w-full h-full object-cover rounded-lg"
+                    fill
+                    className="object-cover rounded-lg"
                     onClick={() => handleImageClick(image.id)}
                   />
                   <div className="absolute top-2 right-2 flex items-center space-x-2">
@@ -278,6 +279,14 @@ const ImageGallery = () => {
           </div>
         </div>
       </main>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileInput}
+        className="hidden"
+        multiple
+        accept="image/*"
+      />
     </>
   );
 };
