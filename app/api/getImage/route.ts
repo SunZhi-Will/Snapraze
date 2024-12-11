@@ -20,15 +20,17 @@ interface CloudinaryError {
     message?: string;
 }
 
-
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET(request: Request) {
     try {
         // 添加緩存控制標頭
         const headers = {
-            'Cache-Control': 'no-store, must-revalidate',
+            'Cache-Control': 'no-cache, no-store, must-revalidate, private',
             'Pragma': 'no-cache',
-            'Expires': '0'
+            'Expires': '0',
+            'Surrogate-Control': 'no-store'
         };
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');

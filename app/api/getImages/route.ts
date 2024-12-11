@@ -18,12 +18,16 @@ interface CloudinaryResponse {
     resources: CloudinaryResource[];
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const GET = async () => {
     // 設定快取控制標頭
     const headers = {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, private',
         'Pragma': 'no-cache',
-        'Expires': '0'
+        'Expires': '0',
+        'Surrogate-Control': 'no-store'
     };
 
     try {
