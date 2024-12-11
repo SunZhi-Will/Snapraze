@@ -15,6 +15,11 @@ interface ImageResponse {
     editUrl?: string;
 }
 
+interface CloudinaryError {
+    http_code?: number;
+    message?: string;
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -53,8 +58,8 @@ export async function GET(request: Request) {
 
         return NextResponse.json(response);
 
-    } catch (error: any) {
-        if (error.http_code === 404) {
+    } catch (error) {
+        if ((error as CloudinaryError).http_code === 404) {
             return NextResponse.json(
                 { error: '找不到指定的圖片' },
                 { status: 404 }
