@@ -3,6 +3,9 @@ const nextConfig = {
     images: {
         domains: ['res.cloudinary.com'],
     },
+    experimental: {
+        fetchCache: 'force-no-store'
+    }
 };
 
 export default nextConfig;
