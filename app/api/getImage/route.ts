@@ -29,10 +29,11 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: '缺少圖片ID' }, { status: 400 });
         }
 
-        // 使用 Promise 包裝的現代化方式調用 Cloudinary API
+        // 添加時間戳參數
         const result = await cloudinary.api.resource(id, {
             type: 'upload',
-            resource_type: 'image'
+            resource_type: 'image',
+            timestamp: Math.round(new Date().getTime() / 1000)
         });
 
         let response: ImageResponse = {
@@ -41,9 +42,11 @@ export async function GET(request: Request) {
         };
 
         try {
+            // 編輯版本也添加時間戳參數
             const edit = await cloudinary.api.resource(`edit/${id}`, {
                 type: 'upload',
-                resource_type: 'image'
+                resource_type: 'image',
+                timestamp: Math.round(new Date().getTime() / 1000)
             });
 
             response = {
@@ -52,7 +55,6 @@ export async function GET(request: Request) {
                 editUrl: edit.secure_url,
             };
         } catch {
-            // 如果找不到編輯版本，靜默失敗，只返回原始圖片
             console.log(`未找到圖片 ${id} 的編輯版本`);
         }
 

@@ -26,7 +26,8 @@ export const GET = async () => {
                 {
                     type: 'upload',
                     prefix: 'uploads/',
-                    max_results: 100
+                    max_results: 100,
+                    timestamp: Math.round(new Date().getTime() / 1000)
                 },
                 (error, result) => {
                     if (error) reject(error);
@@ -41,7 +42,8 @@ export const GET = async () => {
                 {
                     type: 'upload',
                     prefix: 'edit/',
-                    max_results: 100
+                    max_results: 100,
+                    timestamp: Math.round(new Date().getTime() / 1000)
                 },
                 (error, result) => {
                     if (error) reject(error);

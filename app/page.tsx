@@ -30,14 +30,15 @@ const ImageGallery = () => {
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const response = await fetch('/api/getImages');
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/api/getImages?t=${timestamp}`);
         if (!response.ok) {
           throw new Error('獲取圖片失敗');
         }
         const data = await response.json();
         setImages(data.images);
       } catch (error) {
-        toast.error(`載入圖片敗: ${(error as Error).message}`);
+        toast.error(`載入圖片失敗: ${(error as Error).message}`);
       } finally {
         setIsLoading(false);
       }
@@ -88,7 +89,7 @@ const ImageGallery = () => {
     });
 
     try {
-      // 使用 Promise.all 同時處理多���文件上傳
+      // 使用 Promise.all 同時處理多個文件上傳
       const uploadPromises = validFiles.map(async (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -144,10 +145,10 @@ const ImageGallery = () => {
   // 刪除圖片
   const deleteImage = async (id: string) => {
     try {
-      // 顯示刪除中的提示
       toast.loading('正在刪除圖片...', { id: 'delete-progress' });
 
-      const response = await fetch(`/api/deleteImage?id=${id}`, {
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/deleteImage?id=${id}&t=${timestamp}`, {
         method: 'DELETE',
       });
 
@@ -157,6 +158,7 @@ const ImageGallery = () => {
 
       // 從狀態中移除圖片
       setImages(prev => prev.filter(img => img.id !== id));
+      // 不需要重新獲取圖片列表，因為已經從狀態中移除了
 
       toast.success('圖片已成功刪除', { id: 'delete-progress' });
     } catch (error) {
@@ -167,10 +169,20 @@ const ImageGallery = () => {
   };
 
   // 添加導航到編輯頁面的處理函數
-  const handleImageClick = (imageId: string) => {
-    // 將 '/' 替換為 '--'，以避免URL路徑問題
-    const encodedId = imageId.replace(/\//g, '--');
-    router.push(`/edit/${encodedId}`);
+  const handleImageClick = async (imageId: string) => {
+    try {
+      // 在導航前先檢查圖片是否存在
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/getImage?id=${imageId}&t=${timestamp}`);
+      if (!response.ok) {
+        throw new Error('圖片不存在或已被刪除');
+      }
+
+      const encodedId = imageId.replace(/\//g, '--');
+      router.push(`/edit/${encodedId}`);
+    } catch (error) {
+      toast.error(`無法訪問圖片: ${(error as Error).message}`);
+    }
   };
 
   return (
