@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Image from 'next/image';
+export const fetchCache = 'force-no-store'
 
 type ImageItem = {
   id: string;

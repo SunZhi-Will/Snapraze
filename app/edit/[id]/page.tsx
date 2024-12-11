@@ -23,6 +23,8 @@ interface CanvasJSON {
     [key: string]: unknown;
 }
 
+export const fetchCache = 'force-no-store'
+
 export default function EditPage({ params }: { params: { id: string } }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
