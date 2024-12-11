@@ -53,12 +53,18 @@ export async function GET(request: Request) {
 
         return NextResponse.json(response);
 
-    } catch (error) {
-        // 修正方式 1：使用錯誤訊息
+    } catch (error: any) {
+        if (error.http_code === 404) {
+            return NextResponse.json(
+                { error: '找不到指定的圖片' },
+                { status: 404 }
+            );
+        }
+
         console.error('獲取圖片時發生錯誤:', error);
-        return new Response(JSON.stringify({ error: '獲取圖片失敗' }), {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-        });
+        return NextResponse.json(
+            { error: '獲取圖片失敗' },
+            { status: 500 }
+        );
     }
 }
