@@ -19,6 +19,13 @@ interface CloudinaryResponse {
 }
 
 export const GET = async () => {
+    // 設定快取控制標頭
+    const headers = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    };
+
     try {
         // 獲取原始圖片
         const originalImages = await new Promise((resolve, reject) => {
@@ -71,7 +78,7 @@ export const GET = async () => {
         return NextResponse.json({
             message: '成功獲取圖片列表',
             images
-        });
+        }, { headers });
 
     } catch (error) {
         console.error('獲取圖片列表失敗:', error);

@@ -20,13 +20,25 @@ interface CloudinaryError {
     message?: string;
 }
 
+// 添加緩存控制標頭
+const headers = {
+    'Cache-Control': 'no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+};
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
+
+
         if (!id) {
-            return NextResponse.json({ error: '缺少圖片ID' }, { status: 400 });
+            return NextResponse.json({ error: '缺少圖片ID' }, {
+                status: 400,
+                headers
+            });
         }
 
         // 添加時間戳參數
@@ -58,20 +70,20 @@ export async function GET(request: Request) {
             console.log(`未找到圖片 ${id} 的編輯版本`);
         }
 
-        return NextResponse.json(response);
+        return NextResponse.json(response, { headers });
 
     } catch (error) {
         if ((error as CloudinaryError).http_code === 404) {
             return NextResponse.json(
                 { error: '找不到指定的圖片' },
-                { status: 404 }
+                { status: 404, headers }
             );
         }
 
         console.error('獲取圖片時發生錯誤:', error);
         return NextResponse.json(
             { error: '獲取圖片失敗' },
-            { status: 500 }
+            { status: 500, headers }
         );
     }
 }
