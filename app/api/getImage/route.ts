@@ -20,15 +20,16 @@ interface CloudinaryError {
     message?: string;
 }
 
-// 添加緩存控制標頭
-const headers = {
-    'Cache-Control': 'no-store, must-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
-};
+
 
 export async function GET(request: Request) {
     try {
+        // 添加緩存控制標頭
+        const headers = {
+            'Cache-Control': 'no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+        };
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
@@ -76,14 +77,14 @@ export async function GET(request: Request) {
         if ((error as CloudinaryError).http_code === 404) {
             return NextResponse.json(
                 { error: '找不到指定的圖片' },
-                { status: 404, headers }
+                { status: 404 }
             );
         }
 
         console.error('獲取圖片時發生錯誤:', error);
         return NextResponse.json(
             { error: '獲取圖片失敗' },
-            { status: 500, headers }
+            { status: 500 }
         );
     }
 }
