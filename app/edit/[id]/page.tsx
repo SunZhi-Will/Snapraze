@@ -24,6 +24,14 @@ interface CanvasJSON {
     [key: string]: unknown;
 }
 
+interface CanvasState {
+    canvasData: fabric.CanvasOptions;
+    displayDimensions?: {
+        width: number;
+        height: number;
+    };
+}
+
 export const fetchCache = 'force-no-store'
 
 export default function EditPage({ params }: { params: { id: string } }) {
@@ -36,14 +44,13 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const [isHistoryAction, setIsHistoryAction] = useState<boolean>(false);
     const [originalUrl, setOriginalUrl] = useState<string>('');
     const [isEdit, setIsEdit] = useState<boolean>(false);
-    const [isImage, setIsImage] = useState<boolean>(false);
     const [showOriginal, setShowOriginal] = useState<boolean>(false);
     const [showComparison, setShowComparison] = useState<boolean>(false);
     const [editedImageUrl, setEditedImageUrl] = useState<string>('');
-    const [currentCanvasState, setCurrentCanvasState] = useState<any>(null);
+    const [currentCanvasState, setCurrentCanvasState] = useState<fabric.CanvasOptions>();
     const router = useRouter();
 
-    const { data, isLoading, error } = useQuery({
+    const { data } = useQuery({
         queryKey: ['image', params.id],
         queryFn: async () => {
             const imageId = params.id.replace(/--/g, '/');
@@ -63,7 +70,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
     });
 
     const saveMutation = useMutation({
-        mutationFn: async (canvasData: any) => {
+        mutationFn: async (canvasData: { json: fabric.CanvasOptions, dimensions: { width: number, height: number } }) => {
             const response = await fetch('/api/saveEdit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -88,7 +95,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
         if (data) {
             setOriginalUrl(data.imageUrl);
             setIsEdit(!!data.canvasState);
-            setIsImage(!!data.canvasState);
 
             setTimeout(() => {
                 initCanvas(data.imageUrl, data.canvasState);
@@ -96,7 +102,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
         }
     }, [data]);
 
-    const initCanvas = async (url: string, stateData: any) => {
+    const initCanvas = async (url: string, stateData: CanvasState | null) => {
         if (!canvasRef.current) return;
 
         // 確保在初始化新的 Canvas 前，先清理現有的 Canvas
@@ -110,7 +116,8 @@ export default function EditPage({ params }: { params: { id: string } }) {
         const existingCanvas = canvasRef.current;
         const newCanvasElement = document.createElement('canvas');
         existingCanvas.parentNode?.replaceChild(newCanvasElement, existingCanvas);
-        (canvasRef as any).current = newCanvasElement;
+        // 使用 MutableRefObject 來允許修改 current 屬性
+        (canvasRef as React.MutableRefObject<HTMLCanvasElement>).current = newCanvasElement;
 
         // 等待一小段時間確保 DOM 完全更新
         await new Promise(resolve => setTimeout(resolve, 0));

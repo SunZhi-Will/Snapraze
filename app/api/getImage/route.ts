@@ -57,7 +57,7 @@ export async function GET(request: Request) {
             timestamp: Math.round(new Date().getTime() / 1000)
         });
 
-        let response: ImageResponse = {
+        const response: ImageResponse = {
             id: result.public_id,
             url: result.secure_url,
         };

@@ -3,15 +3,17 @@ import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 // 確保 Prisma 客戶端只被初始化一次
+const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
+
 let prisma: PrismaClient;
 
 if (process.env.NODE_ENV === 'production') {
     prisma = new PrismaClient();
 } else {
-    if (!(global as any).prisma) {
-        (global as any).prisma = new PrismaClient();
+    if (!globalForPrisma.prisma) {
+        globalForPrisma.prisma = new PrismaClient();
     }
-    prisma = (global as any).prisma;
+    prisma = globalForPrisma.prisma;
 }
 
 cloudinary.config({
@@ -20,7 +22,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-interface CloudinaryUploadResult extends Record<string, any> {
+interface CloudinaryUploadResult {
     secure_url: string;
     public_id: string;
     original_filename: string;
