@@ -41,6 +41,8 @@ Snapraze provides cloud storage for images, editing with annotation, and image c
 - [Shadcn/ui](https://ui.shadcn.com) - UI Components
 - [Cloudinary](https://cloudinary.com) - Cloud Image Management
 - [PostgreSQL](https://www.postgresql.org) - Relational Database
+- [Prisma](https://www.prisma.io) - ORM Tool
+- [Fabric.js](http://fabricjs.com) - HTML5 Canvas Library
 
 ### 🌩️ Cloud Services
 
@@ -55,6 +57,14 @@ Snapraze provides cloud storage for images, editing with annotation, and image c
   - User data storage
   - Image metadata management
   - Edit history tracking
+
+### 🔐 API Routes
+
+- `/api/upload` - Handle image uploads
+- `/api/getImage` - Get image information
+- `/api/deleteImage` - Delete images
+- `/api/saveEdit` - Save edit states
+- `/api/getCanvasState` - Get canvas state
 
 ## 📁 Project Structure
 
@@ -84,23 +94,40 @@ Create `.env` and `.env.local` files in the project root:
 
 ```env
 # .env
-DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
-NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
-CLOUDINARY_API_SECRET="your_api_secret"
+DATABASE_URL="postgresql://[username]:[password]@[host]:[port]/[database]?pgbouncer=true"
+DIRECT_URL="postgresql://[username]:[password]@[host]:[port]/[database]"
 ```
 
 ```env
 # .env.local
-DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
 NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
 CLOUDINARY_API_SECRET="your_api_secret"
+
+DATABASE_URL="postgresql://[username]:[password]@[host]:[port]/[database]?pgbouncer=true"
+DIRECT_URL="postgresql://[username]:[password]@[host]:[port]/[database]"
 ```
 
 Replace the above variables with your actual configuration values.
 
-### 3️⃣ Install Dependencies
+### 3️⃣ Setup Prisma
+
+1. Initialize Prisma
+```bash
+npx prisma init
+```
+
+2. Run database migrations
+```bash
+npx prisma migrate dev
+```
+
+3. Generate Prisma Client
+```bash
+npx prisma generate
+```
+
+### 4️⃣ Install Dependencies
 
 ```bash
 npm install
@@ -110,7 +137,7 @@ yarn install
 pnpm install
 ```
 
-### 3️⃣ Start Development Server
+### 5️⃣ Start Development Server
 
 ```bash
 npm run dev

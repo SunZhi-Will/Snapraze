@@ -41,6 +41,8 @@ Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用
 - [Shadcn/ui](https://ui.shadcn.com) - UI組件庫
 - [Cloudinary](https://cloudinary.com) - 雲端圖片管理服務
 - [PostgreSQL](https://www.postgresql.org) - 關聯式資料庫
+- [Prisma](https://www.prisma.io) - ORM工具
+- [Fabric.js](http://fabricjs.com) - HTML5 Canvas函式庫
 
 ### 🌩️ 雲端服務
 
@@ -55,6 +57,14 @@ Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用
   - 儲存使用者資料
   - 管理圖片元數據
   - 追蹤編輯歷史記錄
+
+### 🔐 API 路由
+
+- `/api/upload` - 處理圖片上傳
+- `/api/getImage` - 獲取圖片資訊
+- `/api/deleteImage` - 刪除圖片
+- `/api/saveEdit` - 儲存編輯狀態
+- `/api/getCanvasState` - 獲取畫布狀態
 
 ## 📁 專案結構
 
@@ -84,23 +94,40 @@ cd snapraze
 
 ```env
 # .env
-DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
-NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
-NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
-CLOUDINARY_API_SECRET="your_api_secret"
+DATABASE_URL="postgresql://[username]:[password]@[host]:[port]/[database]?pgbouncer=true"
+DIRECT_URL="postgresql://[username]:[password]@[host]:[port]/[database]"
 ```
 
 ```env
 # .env.local
-DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
 NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
 CLOUDINARY_API_SECRET="your_api_secret"
+
+DATABASE_URL="postgresql://[username]:[password]@[host]:[port]/[database]?pgbouncer=true"
+DIRECT_URL="postgresql://[username]:[password]@[host]:[port]/[database]"
 ```
 
 請將以上變數替換為您的實際設定值。
 
-### 3️⃣ 安裝依賴
+### 3️⃣ 設定 Prisma
+
+1. 初始化 Prisma
+```bash
+npx prisma init
+```
+
+2. 執行資料庫遷移
+```bash
+npx prisma migrate dev
+```
+
+3. 生成 Prisma Client
+```bash
+npx prisma generate
+```
+
+### 4️⃣ 安裝依賴
 
 ```bash
 npm install
@@ -110,7 +137,7 @@ yarn install
 pnpm install
 ```
 
-### 4️⃣ 啟動開發服務器
+### 5️⃣ 啟動開發服務器
 
 ```bash
 npm run dev
