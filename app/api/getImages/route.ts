@@ -1,28 +1,24 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-// 配置 Cloudinary
 cloudinary.config({
     cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
     api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-interface CloudinaryResource {
-    public_id: string;
-    secure_url: string;
-    created_at: string;
-}
-
-interface CloudinaryResponse {
-    resources: CloudinaryResource[];
-}
+type ImageWithCanvasState = {
+    id: string;
+    url: string;
+    createdAt: Date;
+    canvasState: { id: string } | null;
+};
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const GET = async () => {
-    // 設定快取控制標頭
     const headers = {
         'Cache-Control': 'no-cache, no-store, must-revalidate, private',
         'Pragma': 'no-cache',
@@ -31,53 +27,21 @@ export const GET = async () => {
     };
 
     try {
-        // 獲取原始圖片
-        const originalImages = await new Promise((resolve, reject) => {
-            cloudinary.api.resources(
-                {
-                    type: 'upload',
-                    prefix: 'uploads/',
-                    max_results: 100,
-                    timestamp: Math.round(new Date().getTime() / 1000)
-                },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
+        const dbImages = await prisma.image.findMany({
+            include: {
+                canvasState: true
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
         });
 
-        // 獲取編輯過的圖片
-        const editedImages = await new Promise((resolve, reject) => {
-            cloudinary.api.resources(
-                {
-                    type: 'upload',
-                    prefix: 'edit/',
-                    max_results: 100,
-                    timestamp: Math.round(new Date().getTime() / 1000)
-                },
-                (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
-                }
-            );
-        });
-
-        // 格式化返回數據，並檢查是否有對應的編輯版本
-        const images = (originalImages as CloudinaryResponse).resources.map((resource: CloudinaryResource) => {
-            const baseId = resource.public_id.replace('uploads/', '');
-            const editedVersion = (editedImages as CloudinaryResponse).resources.find(
-                (edited: CloudinaryResource) => edited.public_id === `edit/uploads/${baseId}`
-            );
-
-            return {
-                id: resource.public_id,
-                url: resource.secure_url,
-                uploadedAt: new Date(resource.created_at),
-                hasEditedVersion: !!editedVersion,
-                editedUrl: editedVersion ? editedVersion.secure_url : null
-            };
-        });
+        const images = dbImages.map((image: ImageWithCanvasState) => ({
+            id: image.id,
+            url: image.url,
+            uploadedAt: image.createdAt,
+            hasEditedVersion: image.canvasState !== null
+        }));
 
         return NextResponse.json({
             message: '成功獲取圖片列表',

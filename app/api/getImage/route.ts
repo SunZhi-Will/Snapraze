@@ -1,12 +1,6 @@
-import { v2 as cloudinary } from 'cloudinary';
+import cloudinary from '@/lib/cloudinary';
 import { NextResponse } from 'next/server';
-
-// 配置 Cloudinary
-cloudinary.config({
-    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { prisma } from '@/lib/prisma';
 
 interface ImageResponse {
     id: string;
@@ -25,7 +19,6 @@ export const revalidate = 0;
 
 export async function GET(request: Request) {
     try {
-        // 添加緩存控制標頭
         const headers = {
             'Cache-Control': 'no-cache, no-store, must-revalidate, private',
             'Pragma': 'no-cache',
@@ -35,8 +28,6 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const id = searchParams.get('id');
 
-
-
         if (!id) {
             return NextResponse.json({ error: '缺少圖片ID' }, {
                 status: 400,
@@ -44,8 +35,23 @@ export async function GET(request: Request) {
             });
         }
 
-        // 添加時間戳參數
-        const result = await cloudinary.api.resource(id, {
+        // 先從資料庫檢查圖片是否存在
+        const dbImage = await prisma.image.findUnique({
+            where: { id },
+            include: {
+                canvasState: true
+            }
+        });
+
+        if (!dbImage) {
+            return NextResponse.json(
+                { error: '資料庫中找不到指定的圖片' },
+                { status: 404, headers }
+            );
+        }
+
+        // 從 Cloudinary 獲取圖片資訊
+        const result = await cloudinary.api.resource(`uploads/${id}`, {
             type: 'upload',
             resource_type: 'image',
             timestamp: Math.round(new Date().getTime() / 1000)
@@ -56,29 +62,15 @@ export async function GET(request: Request) {
             url: result.secure_url,
         };
 
-        try {
-            // 編輯版本也添加時間戳參數
-            const edit = await cloudinary.api.resource(`edit/${id}`, {
-                type: 'upload',
-                resource_type: 'image',
-                timestamp: Math.round(new Date().getTime() / 1000)
-            });
-
-            response = {
-                ...response,
-                editId: edit.public_id,
-                editUrl: edit.secure_url,
-            };
-        } catch {
-            console.log(`未找到圖片 ${id} 的編輯版本`);
-        }
-
-        return NextResponse.json(response, { headers });
+        return NextResponse.json({
+            ...response,
+            hasEditedVersion: dbImage.canvasState !== null
+        }, { headers });
 
     } catch (error) {
         if ((error as CloudinaryError).http_code === 404) {
             return NextResponse.json(
-                { error: '找不到指定的圖片' },
+                { error: 'Cloudinary 中找不到指定的圖片' },
                 { status: 404 }
             );
         }
@@ -88,5 +80,7 @@ export async function GET(request: Request) {
             { error: '獲取圖片失敗' },
             { status: 500 }
         );
+    } finally {
+        await prisma.$disconnect();
     }
 }

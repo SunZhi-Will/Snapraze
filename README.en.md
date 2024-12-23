@@ -39,6 +39,22 @@ Snapraze provides cloud storage for images, editing with annotation, and image c
 - [TypeScript](https://www.typescriptlang.org) - JavaScript with types
 - [Tailwind CSS](https://tailwindcss.com) - CSS Framework
 - [Shadcn/ui](https://ui.shadcn.com) - UI Components
+- [Cloudinary](https://cloudinary.com) - Cloud Image Management
+- [PostgreSQL](https://www.postgresql.org) - Relational Database
+
+### 🌩️ Cloud Services
+
+- **Cloudinary**
+  - Image upload and storage
+  - Image optimization and transformation
+  - Reliable Content Delivery Network (CDN)
+
+### 💾 Database
+
+- **PostgreSQL**
+  - User data storage
+  - Image metadata management
+  - Edit history tracking
 
 ## 📁 Project Structure
 
@@ -62,7 +78,29 @@ git clone https://github.com/SunZhi-Will/snapraze.git
 cd snapraze
 ```
 
-### 2️⃣ Install Dependencies
+### 2️⃣ Configure Environment Variables
+
+Create `.env` and `.env.local` files in the project root:
+
+```env
+# .env
+DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+```
+
+```env
+# .env.local
+DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+```
+
+Replace the above variables with your actual configuration values.
+
+### 3️⃣ Install Dependencies
 
 ```bash
 npm install

@@ -11,48 +11,104 @@ import { useRouter } from 'next/navigation';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import Image from 'next/image';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+
 export const fetchCache = 'force-no-store'
 
 type ImageItem = {
   id: string;
   url: string;
   uploadedAt: Date;
-  hasEditedVersion?: boolean;
-  editedUrl?: string | null;
+  hasEditedVersion: boolean;
 };
 
 const ImageGallery = () => {
-  const [images, setImages] = useState<ImageItem[]>([]);
+  const queryClient = useQueryClient()
   const [dragActive, setDragActive] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const timestamp = new Date().getTime();
-        const response = await fetch(`/api/getImages?t=${timestamp}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-        if (!response.ok) {
-          throw new Error('獲取圖片失敗');
-        }
-        const data = await response.json();
-        setImages(data.images);
-      } catch (error) {
-        toast.error(`載入圖片失敗: ${(error as Error).message}`);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // 獲取圖片列表
+  const { data: images = [], isLoading } = useQuery({
+    queryKey: ['images'],
+    queryFn: async () => {
+      const response = await fetch('/api/getImages', {
+        cache: 'no-store',
+      })
+      if (!response.ok) throw new Error('獲取圖片失敗')
+      const data = await response.json()
+      return data.images
+    }
+  })
 
-    fetchImages();
-  }, []);
+  // 上傳圖片
+  const uploadMutation = useMutation({
+    mutationFn: async (files: FileList | File[]) => {
+      const validFiles = Array.from(files).filter(file =>
+        ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
+      )
+
+      if (validFiles.length === 0) {
+        throw new Error('請選擇有效的圖片文件')
+      }
+
+      const uploadPromises = validFiles.map(async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+        if (!response.ok) throw new Error(`上傳 ${file.name} 失敗`)
+        return response.json()
+      })
+
+      return Promise.all(uploadPromises)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] })
+      toast.success('上傳成功')
+    },
+    onError: (error) => {
+      toast.error(`上傳失敗: ${error.message}`)
+    }
+  })
+
+  // 刪除圖片
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/deleteImage?id=${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) throw new Error('刪除圖片失敗')
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] })
+      toast.success('刪除成功')
+    },
+    onError: (error) => {
+      toast.error(`刪除失敗: ${error.message}`)
+    }
+  })
+
+  // 處理文件上傳
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      uploadMutation.mutate(e.target.files)
+    }
+  }
+
+  // 處理拖放上傳
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setDragActive(false)
+
+    if (e.dataTransfer?.files) {
+      uploadMutation.mutate(e.dataTransfer.files)
+    }
+  }, [uploadMutation])
 
   // 拖放事件處理
   const handleDragEnter = (e: React.DragEvent) => {
@@ -78,130 +134,11 @@ const ImageGallery = () => {
     e.stopPropagation();
   };
 
-  // 文件上传处理
-  // 修改上傳文件處理函數
-  const uploadFiles = async (files: FileList | File[]) => {
-    const validFiles = Array.from(files).filter(file =>
-      ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)
-    );
-
-    if (validFiles.length === 0) {
-      toast.error('請選擇有效的圖片文件');
-      return;
-    }
-
-    // 顯示總體上傳進度提示
-    toast.loading(`正在上傳 ${validFiles.length} 個文件...`, {
-      id: 'upload-progress'
-    });
-
-    try {
-      // 使用 Promise.all 同時處理多個文件上傳
-      const uploadPromises = validFiles.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-          cache: 'no-store'
-        });
-
-        if (!response.ok) {
-          throw new Error(`上傳 ${file.name} 失敗`);
-        }
-
-        const result = await response.json();
-        return {
-          id: result.imageId,
-          url: result.imageUrl,
-          uploadedAt: new Date()
-        };
-      });
-
-      const uploadedImages = await Promise.all(uploadPromises);
-
-      setImages(prev => [...prev, ...uploadedImages]);
-      toast.success(`成功上傳 ${validFiles.length} 個文件！`, {
-        id: 'upload-progress'
-      });
-    } catch (error) {
-      toast.error(`上傳過程中發生錯誤: ${(error as Error).message}`, {
-        id: 'upload-progress'
-      });
-    }
-  };
-
-  // 处理文件拖放
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer?.files) {
-      uploadFiles(e.dataTransfer.files);
-    }
-  }, []);
-
-  // 文件输入change事件
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      uploadFiles(e.target.files);
-    }
-  };
-
-  // 刪除圖片
-  const deleteImage = async (id: string) => {
-    try {
-      toast.loading('正在刪除圖片...', { id: 'delete-progress' });
-
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/deleteImage?id=${id}&t=${timestamp}`, {
-        method: 'DELETE',
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('刪除圖片失敗');
-      }
-
-      // 從狀態中移除圖片
-      setImages(prev => prev.filter(img => img.id !== id));
-      // 不需要重新獲取圖片列表，因為已經從狀態中移除了
-
-      toast.success('圖片已成功刪除', { id: 'delete-progress' });
-    } catch (error) {
-      toast.error(`刪除圖片失敗: ${(error as Error).message}`, {
-        id: 'delete-progress'
-      });
-    }
-  };
-
   // 添加導航到編輯頁面的處理函數
-  const handleImageClick = async (imageId: string) => {
-    try {
-      // 在導航前先檢查圖片是否存在
-      const timestamp = new Date().getTime();
-      const response = await fetch(`/api/getImage?id=${imageId}&t=${timestamp}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      });
-      if (!response.ok) {
-        throw new Error('圖片不存在或已被刪除');
-      }
-
-      const encodedId = imageId.replace(/\//g, '--');
-      router.push(`/edit/${encodedId}`);
-    } catch (error) {
-      toast.error(`無法訪問圖片: ${(error as Error).message}`);
-    }
+  const handleImageClick = (imageId: string) => {
+    // 移除 'uploads/' 前綴
+    const cleanImageId = imageId.replace('uploads/', '');
+    router.push(`/edit/${cleanImageId}`);
   };
 
   return (
@@ -276,7 +213,7 @@ const ImageGallery = () => {
                 <p className="text-gray-500 text-sm sm:text-base text-center">尚未上傳任何圖片</p>
               </div>
             ) : (
-              images.map((image) => (
+              images.map((image: ImageItem) => (
                 <div
                   key={image.id}
                   className="relative group cursor-pointer aspect-square"
@@ -292,7 +229,7 @@ const ImageGallery = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        deleteImage(image.id);
+                        deleteMutation.mutate(image.id);
                       }}
                       className="bg-white/80 p-1.5 sm:p-2 rounded-full 
                       opacity-0 group-hover:opacity-100 transition hover:bg-red-100 hover:text-red-600"

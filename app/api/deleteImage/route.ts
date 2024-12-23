@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 // 配置 Cloudinary
 cloudinary.config({
@@ -21,6 +22,13 @@ export const DELETE = async (request: Request) => {
             );
         }
 
+        // 先刪除資料庫中的記錄
+        await prisma.image.delete({
+            where: {
+                id: imageId
+            }
+        });
+
         // 檢查是否存在編輯過的圖片（通常會加上 'edited_' 前綴）
         const editedImageId = `edit/${imageId}`;
 
@@ -39,7 +47,7 @@ export const DELETE = async (request: Request) => {
 
         // 刪除原始圖片
         const result = await new Promise((resolve, reject) => {
-            cloudinary.uploader.destroy(imageId, (error, result) => {
+            cloudinary.uploader.destroy(`uploads/${imageId}`, (error, result) => {
                 if (error) reject(error);
                 else resolve(result);
             });
@@ -56,5 +64,7 @@ export const DELETE = async (request: Request) => {
             { error: '刪除圖片失敗', details: (error as Error).message },
             { status: 500 }
         );
+    } finally {
+        await prisma.$disconnect();
     }
 };

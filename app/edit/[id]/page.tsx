@@ -29,15 +29,17 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
-    const [imageUrl, setImageUrl] = useState<string>('');
     const [history, setHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState<number>(-1);
     const [isDrawing, setIsDrawing] = useState<boolean>(false);
     const [isHistoryAction, setIsHistoryAction] = useState<boolean>(false);
     const [originalUrl, setOriginalUrl] = useState<string>('');
-    const [editUrl, setEditUrl] = useState<string>('');
+    const [isEdit, setIsEdit] = useState<boolean>(false);
+    const [isImage, setIsImage] = useState<boolean>(false);
     const [showOriginal, setShowOriginal] = useState<boolean>(false);
     const [showComparison, setShowComparison] = useState<boolean>(false);
+    const [editedImageUrl, setEditedImageUrl] = useState<string>('');
+    const [currentCanvasState, setCurrentCanvasState] = useState<any>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -54,12 +56,23 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 const data = await response.json();
 
                 setOriginalUrl(data.url);
-                setEditUrl(data.editUrl || data.url);
-                setImageUrl(data.editUrl || data.url);
+
+                // 首先獲取 Canvas 狀態
+                const stateResponse = await fetch(`/api/getCanvasState?id=${params.id}`);
+                const stateData = await stateResponse.json();
+
+                if (stateResponse.ok && stateData) {
+                    setIsEdit(true);
+                    setIsImage(true);
+                } else {
+                    setIsEdit(false);
+                    setIsImage(false);
+                }
 
                 setTimeout(() => {
-                    initCanvas(data.editUrl || data.url);
+                    initCanvas(data.url, stateData);
                 }, 0);
+
             } catch (error) {
                 console.error('載入圖片錯誤:', error);
                 toast.error('載入圖片失敗');
@@ -80,9 +93,9 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 }
             }
         };
-    }, [params.id, router]);
+    }, [params.id]);
 
-    const initCanvas = async (url: string) => {
+    const initCanvas = async (url: string, stateData: any) => {
         if (!canvasRef.current) return;
 
         // 確保在初始化新的 Canvas 前，先清理現有的 Canvas
@@ -153,6 +166,21 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 setHistory([initialJson]);
                 setHistoryIndex(0);
             }, 100);
+
+            // 修改載入已保存狀態的部分
+            if (stateData) {
+                const { canvasData, displayDimensions } = stateData;
+                if (canvasData) {
+                    // 如果有已保存的狀態，載入它
+                    newCanvas.loadFromJSON(canvasData).then(() => {
+                        newCanvas.renderAll();
+                        // 設置保存的顯示尺寸
+                        if (displayDimensions) {
+                            newCanvas.setDimensions(displayDimensions);
+                        }
+                    });
+                }
+            }
         } catch (error) {
             console.error('Canvas 初始化錯誤:', error);
             toast.error('畫布初始化失敗');
@@ -197,43 +225,24 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
         toast.loading('正在儲存...', { id: 'save' });
         try {
-            // 暫時調整畫布大小到原始尺寸
-            const currentWidth = canvas.getWidth();
-            const currentHeight = canvas.getHeight();
-            const zoom = canvas.getZoom();
+            // 獲取 canvas 的 JSON 數據
+            const canvasJSON = canvas.toJSON();
 
-            const originalWidth = currentWidth / zoom;
-            const originalHeight = currentHeight / zoom;
-
-            // 設置原始尺寸
-            canvas.setDimensions({
-                width: originalWidth,
-                height: originalHeight
-            });
-            canvas.setZoom(1);
-
-            // 導出圖片
-            const dataUrl = canvas.toDataURL({
-                format: 'png',
-                quality: 1,
-                multiplier: 1,
-                enableRetinaScaling: false
-            });
-
-            // 恢復顯示尺寸
-            canvas.setDimensions({
-                width: currentWidth,
-                height: currentHeight
-            });
-            canvas.setZoom(zoom);
-            canvas.renderAll();
-
+            // 發送到後端
             const response = await fetch('/api/saveEdit', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ id: params.id, imageData: dataUrl }),
+                body: JSON.stringify({
+                    id: params.id,
+                    canvasData: canvasJSON,
+                    // 保存當前的顯示尺寸
+                    displayDimensions: {
+                        width: canvas.getWidth(),
+                        height: canvas.getHeight()
+                    }
+                }),
             });
 
             if (!response.ok) {
@@ -242,8 +251,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
             await response.json();
             toast.success('儲存成功', { id: 'save' });
-            // 可以選擇重定向到比對頁面
-            // router.push(`/compare/${params.id}`);
         } catch (error) {
             console.error('儲存錯誤:', error);
             toast.error('儲存失敗', { id: 'save' });
@@ -264,7 +271,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                     jsonObj.backgroundImage = {
                         ...bgImage.toObject(),
                         crossOrigin: 'anonymous',
-                        src: imageUrl
+                        src: originalUrl
                     };
                     json = JSON.stringify(jsonObj);
                 }
@@ -278,7 +285,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             console.error('保存歷史記錄失敗:', error);
             toast.error('保存歷史記錄失敗');
         }
-    }, [canvas, history, historyIndex, imageUrl]);
+    }, [canvas, history, historyIndex, originalUrl]);
 
     const undo = useCallback(() => {
         if (!canvas || historyIndex <= 0) return;
@@ -295,7 +302,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 if (canvas.backgroundImage) {
                     const bgImage = canvas.backgroundImage as fabric.Image;
                     bgImage.set('crossOrigin', 'anonymous');
-                    bgImage.setSrc(imageUrl, { crossOrigin: 'anonymous' });
+                    bgImage.setSrc(originalUrl, { crossOrigin: 'anonymous' });
                 }
                 canvas.renderAll();
                 setHistoryIndex(newIndex);
@@ -309,7 +316,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             toast.error('復原失敗');
             setIsHistoryAction(false);
         }
-    }, [canvas, historyIndex, history, imageUrl]);
+    }, [canvas, historyIndex, history, originalUrl]);
 
     const redo = useCallback(() => {
         if (!canvas || historyIndex >= history.length - 1) return;
@@ -320,7 +327,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 if (canvas.backgroundImage) {
                     const bgImage = canvas.backgroundImage as fabric.Image;
                     bgImage.set('crossOrigin', 'anonymous');
-                    bgImage.setSrc(imageUrl, { crossOrigin: 'anonymous' });
+                    bgImage.setSrc(originalUrl, { crossOrigin: 'anonymous' });
                 }
                 canvas.renderAll();
                 setHistoryIndex(newIndex);
@@ -331,7 +338,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
         } catch {
             setIsHistoryAction(false);
         }
-    }, [canvas, historyIndex, history, imageUrl]);
+    }, [canvas, historyIndex, history, originalUrl]);
 
     const deleteSelected = useCallback(() => {
         if (!canvas) return;
@@ -400,34 +407,65 @@ export default function EditPage({ params }: { params: { id: string } }) {
         return () => window.removeEventListener('keydown', handleKeyboard);
     }, [canvas, undo, redo, deleteSelected]);
 
-    const toggleOriginal = () => {
+    const toggleOriginal = async () => {
+        if (!showOriginal && canvas) {
+            // 切換到原圖之前，保存當前的編輯狀態
+            const canvasState = canvas.toJSON();
+            setCurrentCanvasState(canvasState);
+        }
+
+        if (fabricCanvasRef.current) {
+            try {
+                fabricCanvasRef.current.dispose();
+            } catch (error) {
+                console.error('清理 canvas 錯誤:', error);
+            }
+            fabricCanvasRef.current = null;
+            setCanvas(null);
+        }
+
         setShowOriginal(!showOriginal);
-        if (!showOriginal) {
-            initCanvas(originalUrl);
-        } else {
-            initCanvas(editUrl);
+
+        // 如果從原圖切換回編輯視圖，使用保存的狀態
+        if (showOriginal && currentCanvasState) {
+            setTimeout(() => {
+                initCanvas(originalUrl, { canvasData: currentCanvasState });
+            }, 100);
         }
     };
 
-    const toggleComparison = () => {
-        if (!showComparison) {
-            // 進入比較模式前先清理 canvas
-            if (fabricCanvasRef.current) {
-                try {
-                    fabricCanvasRef.current.dispose();
-                    fabricCanvasRef.current = null;
-                    setCanvas(null);
-                } catch (error) {
-                    console.error('清理 canvas 時發生錯誤:', error);
-                }
-            }
-        } else {
-            // 返回編輯模式時，重新初始化 canvas
-            setTimeout(() => {
-                initCanvas(editUrl);
-            }, 0);
+    const toggleComparison = async () => {
+        if (!showComparison && canvas) {
+            // 切換到比較模式時，保存當前的編輯狀態和預覽圖
+            const canvasState = canvas.toJSON();
+            setCurrentCanvasState(canvasState);
+
+            const dataURL = canvas.toDataURL({
+                format: 'png',
+                quality: 1,
+                multiplier: 1
+            });
+            setEditedImageUrl(dataURL);
         }
+
+        if (fabricCanvasRef.current) {
+            try {
+                fabricCanvasRef.current.dispose();
+            } catch (error) {
+                console.error('清理 canvas 錯誤:', error);
+            }
+            fabricCanvasRef.current = null;
+            setCanvas(null);
+        }
+
         setShowComparison(!showComparison);
+
+        // 如果從比較視圖切換回編輯視圖，使用保存的狀態
+        if (showComparison && currentCanvasState) {
+            setTimeout(() => {
+                initCanvas(originalUrl, { canvasData: currentCanvasState });
+            }, 100);
+        }
     };
 
     return (
@@ -444,7 +482,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                         <ArrowLeft />
                     </button>
 
-                    {editUrl !== originalUrl && (
+                    {isEdit && (
                         <>
                             <div className="hidden sm:block h-6 w-px bg-gray-300" />
                             {!showComparison && (
@@ -457,15 +495,13 @@ export default function EditPage({ params }: { params: { id: string } }) {
                                 </button>
                             )}
 
-                            {editUrl !== originalUrl && (
-                                <button
-                                    onClick={toggleComparison}
-                                    className={`px-2 sm:px-3 py-1 sm:py-2 text-sm sm:text-base rounded-lg ${showComparison ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'
-                                        }`}
-                                >
-                                    {showComparison ? '返回編輯' : '比較'}
-                                </button>
-                            )}
+                            <button
+                                onClick={toggleComparison}
+                                className={`px-2 sm:px-3 py-1 sm:py-2 text-sm sm:text-base rounded-lg ${showComparison ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'
+                                    }`}
+                            >
+                                {showComparison ? '返回編輯' : '比較'}
+                            </button>
                         </>
                     )}
 
@@ -519,7 +555,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
             {/* 畫布容器 */}
             <div className="mt-24 sm:mt-20">
                 {showComparison ? (
-                    // 比較模式：在小螢幕上改為上下排列
                     <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0">
                         <div className="relative">
                             <Image
@@ -535,7 +570,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                         </div>
                         <div className="relative">
                             <Image
-                                src={editUrl}
+                                src={editedImageUrl || originalUrl}
                                 alt="編輯圖"
                                 width={800}
                                 height={600}
@@ -546,10 +581,23 @@ export default function EditPage({ params }: { params: { id: string } }) {
                             </div>
                         </div>
                     </div>
-                ) : (
-                    // 編輯模式：確保畫布在小螢幕上也能完整顯示
+                ) : showOriginal ? (
                     <div className="flex justify-center px-2 sm:px-4">
-                        <canvas ref={canvasRef} />
+                        <div className="relative">
+                            <Image
+                                src={originalUrl}
+                                alt="原圖"
+                                width={800}
+                                height={600}
+                                className="max-w-full sm:max-h-[80vh] object-contain"
+                            />
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex justify-center px-2 sm:px-4">
+                        <div id="canvas-container">
+                            <canvas ref={canvasRef} />
+                        </div>
                     </div>
                 )}
             </div>

@@ -39,6 +39,22 @@ Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用
 - [TypeScript](https://www.typescriptlang.org) - JavaScript的超集
 - [Tailwind CSS](https://tailwindcss.com) - CSS框架
 - [Shadcn/ui](https://ui.shadcn.com) - UI組件庫
+- [Cloudinary](https://cloudinary.com) - 雲端圖片管理服務
+- [PostgreSQL](https://www.postgresql.org) - 關聯式資料庫
+
+### 🌩️ 雲端服務
+
+- **Cloudinary**
+  - 提供圖片上傳與儲存
+  - 支援圖片優化與轉換
+  - 可靠的內容傳遞網路(CDN)
+
+### 💾 資料庫
+
+- **PostgreSQL**
+  - 儲存使用者資料
+  - 管理圖片元數據
+  - 追蹤編輯歷史記錄
 
 ## 📁 專案結構
 
@@ -62,7 +78,29 @@ git clone https://github.com/SunZhi-Will/snapraze.git
 cd snapraze
 ```
 
-### 2️⃣ 安裝依賴
+### 2️⃣ 設定環境變數
+
+在專案根目錄建立 `.env` 和 `.env.local` 檔案：
+
+```env
+# .env
+DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+```
+
+```env
+# .env.local
+DATABASE_URL="postgresql://username:password@localhost:5432/snapraze"
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
+NEXT_PUBLIC_CLOUDINARY_API_KEY="your_api_key"
+CLOUDINARY_API_SECRET="your_api_secret"
+```
+
+請將以上變數替換為您的實際設定值。
+
+### 3️⃣ 安裝依賴
 
 ```bash
 npm install
@@ -72,7 +110,7 @@ yarn install
 pnpm install
 ```
 
-### 3️⃣ 啟動開發服務器
+### 4️⃣ 啟動開發服務器
 
 ```bash
 npm run dev

@@ -1,51 +1,45 @@
-import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
 
-// 配置 Cloudinary
-cloudinary.config({
-    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-// 定義 Cloudinary 上傳結果的介面
-interface CloudinaryUploadResult {
-    secure_url: string;
-    // 可以根據需要添加其他 Cloudinary 返回的屬性
-}
+const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
     try {
-        const { id, imageData } = await request.json();
+        const { id, canvasData, displayDimensions } = await request.json();
 
-        // 將 base64 圖片數據處理
-        const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-
-        // 生成新的檔案名稱
-        const originalPath = id.replace(/--/g, '/');
-        const editPath = originalPath;
-
-        // 上傳到 Cloudinary
-        const uploadResult = await new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(`data:image/png;base64,${base64Data}`, {
-                folder: 'edit',
-                public_id: editPath,
-            }, (error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            });
+        // 確保圖片存在
+        const image = await prisma.image.findUnique({
+            where: { id }
         });
 
-        return NextResponse.json({
-            success: true,
-            url: (uploadResult as CloudinaryUploadResult).secure_url
+        if (!image) {
+            return NextResponse.json(
+                { error: '找不到對應的圖片' },
+                { status: 404 }
+            );
+        }
+
+        await prisma.canvasState.upsert({
+            where: { imageId: id },
+            update: {
+                canvasData,
+                displayDimensions
+            },
+            create: {
+                imageId: id,
+                canvasData,
+                displayDimensions
+            }
         });
 
+        return NextResponse.json({ success: true });
     } catch (error) {
-        console.error('儲存編輯圖片錯誤:', error);
+        console.error('保存編輯狀態失敗:', error);
         return NextResponse.json(
-            { error: '儲存圖片時發生錯誤' },
+            { error: '保存失敗' },
             { status: 500 }
         );
+    } finally {
+        await prisma.$disconnect();
     }
 }

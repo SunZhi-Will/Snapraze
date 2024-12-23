@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Image {
+  id          String       @id
+  url         String
+  filename    String
+  mimeType    String
+  size        Int
+  createdAt   DateTime     @default(now())
+  canvasState CanvasState?
+} 
+
+model CanvasState {
+  id                String   @id @default(cuid())
+  imageId          String   @unique
+  canvasData       Json
+  displayDimensions Json
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  image            Image?   @relation(fields: [imageId], references: [id], onDelete: Cascade)
+}
