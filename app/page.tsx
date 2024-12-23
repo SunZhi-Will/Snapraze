@@ -207,7 +207,7 @@ const ImageGallery = () => {
   return (
     <>
       <AppSidebar />
-      <main className="h-full w-full ">
+      <main className="h-full w-full">
         <SidebarTrigger />
         <Toaster
           position="bottom-right"
@@ -220,7 +220,7 @@ const ImageGallery = () => {
           }}
         />
         <div
-          className="mx-auto p-3 sm:p-6 bg-gray-50 min-h-screen w-full"
+          className="mx-auto p-3 sm:p-6 bg-gray-50 h-[calc(100vh-29px)] w-full"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
@@ -263,7 +263,8 @@ const ImageGallery = () => {
           </div>
 
           {/* 圖片網格 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 
+            overflow-y-auto max-h-[calc(100%-40px)]">
             {isLoading ? (
               <div className="col-span-full min-h-[200px] flex flex-col items-center justify-center">
                 <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-blue-500" />
