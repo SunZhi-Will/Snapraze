@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
 import Image from 'next/image';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 interface CanvasJSON {
     backgroundImage?: {
@@ -26,7 +27,7 @@ interface CanvasJSON {
 export const fetchCache = 'force-no-store'
 
 export default function EditPage({ params }: { params: { id: string } }) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
     const [history, setHistory] = useState<string[]>([]);
@@ -42,58 +43,58 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const [currentCanvasState, setCurrentCanvasState] = useState<any>(null);
     const router = useRouter();
 
+    const { data, isLoading, error } = useQuery({
+        queryKey: ['image', params.id],
+        queryFn: async () => {
+            const imageId = params.id.replace(/--/g, '/');
+            const [imageResponse, stateResponse] = await Promise.all([
+                fetch(`/api/getImage?id=${imageId}`),
+                fetch(`/api/getCanvasState?id=${params.id}`)
+            ]);
+
+            const imageData = await imageResponse.json();
+            const stateData = await stateResponse.json();
+
+            return {
+                imageUrl: imageData.url,
+                canvasState: stateResponse.ok ? stateData : null
+            };
+        }
+    });
+
+    const saveMutation = useMutation({
+        mutationFn: async (canvasData: any) => {
+            const response = await fetch('/api/saveEdit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: params.id,
+                    canvasData: canvasData.json,
+                    displayDimensions: canvasData.dimensions
+                }),
+            });
+            if (!response.ok) throw new Error('儲存失敗');
+            return response.json();
+        },
+        onSuccess: () => {
+            toast.success('儲存成功');
+        },
+        onError: () => {
+            toast.error('儲存失敗');
+        }
+    });
+
     useEffect(() => {
-        const fetchImage = async () => {
-            try {
-                if (fabricCanvasRef.current) {
-                    fabricCanvasRef.current.dispose();
-                    fabricCanvasRef.current = null;
-                }
+        if (data) {
+            setOriginalUrl(data.imageUrl);
+            setIsEdit(!!data.canvasState);
+            setIsImage(!!data.canvasState);
 
-                const imageId = params.id.replace(/--/g, '/');
-                const response = await fetch(`/api/getImage?id=${imageId}`);
-                if (!response.ok) throw new Error('圖片載入失敗');
-                const data = await response.json();
-
-                setOriginalUrl(data.url);
-
-                // 首先獲取 Canvas 狀態
-                const stateResponse = await fetch(`/api/getCanvasState?id=${params.id}`);
-                const stateData = await stateResponse.json();
-
-                if (stateResponse.ok && stateData) {
-                    setIsEdit(true);
-                    setIsImage(true);
-                } else {
-                    setIsEdit(false);
-                    setIsImage(false);
-                }
-
-                setTimeout(() => {
-                    initCanvas(data.url, stateData);
-                }, 0);
-
-            } catch (error) {
-                console.error('載入圖片錯誤:', error);
-                toast.error('載入圖片失敗');
-                router.push('/');
-            }
-        };
-
-        fetchImage();
-
-        return () => {
-            if (fabricCanvasRef.current) {
-                try {
-                    fabricCanvasRef.current.dispose();
-                    fabricCanvasRef.current = null;
-                    setCanvas(null);
-                } catch (error) {
-                    console.error('清理 canvas 時發生錯誤:', error);
-                }
-            }
-        };
-    }, [params.id]);
+            setTimeout(() => {
+                initCanvas(data.imageUrl, data.canvasState);
+            }, 0);
+        }
+    }, [data]);
 
     const initCanvas = async (url: string, stateData: any) => {
         if (!canvasRef.current) return;
@@ -104,6 +105,12 @@ export default function EditPage({ params }: { params: { id: string } }) {
             fabricCanvasRef.current = null;
             setCanvas(null);
         }
+
+        // 確保 DOM 元素已重置
+        const existingCanvas = canvasRef.current;
+        const newCanvasElement = document.createElement('canvas');
+        existingCanvas.parentNode?.replaceChild(newCanvasElement, existingCanvas);
+        (canvasRef as any).current = newCanvasElement;
 
         // 等待一小段時間確保 DOM 完全更新
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -183,7 +190,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             }
         } catch (error) {
             console.error('Canvas 初始化錯誤:', error);
-            toast.error('畫布初始化失敗');
+            // toast.error('畫布初始化失敗');
         }
     };
 
@@ -223,38 +230,14 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const saveCanvas = async () => {
         if (!canvas) return;
 
-        toast.loading('正在儲存...', { id: 'save' });
-        try {
-            // 獲取 canvas 的 JSON 數據
-            const canvasJSON = canvas.toJSON();
-
-            // 發送到後端
-            const response = await fetch('/api/saveEdit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: params.id,
-                    canvasData: canvasJSON,
-                    // 保存當前的顯示尺寸
-                    displayDimensions: {
-                        width: canvas.getWidth(),
-                        height: canvas.getHeight()
-                    }
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('儲存失敗');
+        const canvasJSON = canvas.toJSON();
+        saveMutation.mutate({
+            json: canvasJSON,
+            dimensions: {
+                width: canvas.getWidth(),
+                height: canvas.getHeight()
             }
-
-            await response.json();
-            toast.success('儲存成功', { id: 'save' });
-        } catch (error) {
-            console.error('儲存錯誤:', error);
-            toast.error('儲存失敗', { id: 'save' });
-        }
+        });
     };
 
     const saveToHistory = useCallback(() => {
@@ -467,6 +450,17 @@ export default function EditPage({ params }: { params: { id: string } }) {
             }, 100);
         }
     };
+
+    useEffect(() => {
+        // 組件卸載時清理 Canvas
+        return () => {
+            if (fabricCanvasRef.current) {
+                fabricCanvasRef.current.dispose();
+                fabricCanvasRef.current = null;
+                setCanvas(null);
+            }
+        };
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-100 p-4">
