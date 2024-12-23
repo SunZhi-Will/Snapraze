@@ -2,7 +2,7 @@
 
 # 🚀 Snapraze
 
-### Modern Next.js Web Application
+### Image Processing & Storage Platform
 
 [![Next.js](https://img.shields.io/badge/Next.js-13.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
@@ -14,22 +14,31 @@
 
 ## 📖 Introduction
 
-Snapraze is a modern web application built with Next.js framework, combining the latest frontend technologies to provide a smooth user experience and powerful functionality.
+Snapraze provides cloud storage for images, editing with annotation, and image comparison features. Users can upload, manage, edit and compare images.
 
-### ✨ Key Features
+### ✨ Main Features
 
-- 🎨 Beautiful responsive design
-- 📤 Intuitive file upload functionality
-- 💎 Modern UI interface
-- 📱 Complete mobile adaptation
-- 🌙 Dark mode support
+- 🖼️ Cloud Image Storage
+  - Image upload and storage
+  - Image management system
+  - Multiple format support
 
-## 🛠️ Tech Stack
+- ✏️ Image Editing & Annotation
+  - Annotation tools
+  - Editing features
+  - Real-time preview
 
-- **Framework**: [Next.js](https://nextjs.org) - React Framework
-- **Language**: [TypeScript](https://www.typescriptlang.org) - JavaScript with syntax for types
-- **Styling**: [Tailwind CSS](https://tailwindcss.com) - Utility-first CSS framework
-- **UI Components**: [Shadcn/ui](https://ui.shadcn.com) - Modern UI component library
+- 🔍 Original vs Edited Comparison
+  - Side-by-side view
+  - Real-time toggle
+  - Change history
+
+## 🛠️ Technologies
+
+- [Next.js](https://nextjs.org) - React Framework
+- [TypeScript](https://www.typescriptlang.org) - JavaScript with types
+- [Tailwind CSS](https://tailwindcss.com) - CSS Framework
+- [Shadcn/ui](https://ui.shadcn.com) - UI Components
 
 ## 📁 Project Structure
 
@@ -46,7 +55,7 @@ snapraze/
 
 ## 🚀 Getting Started
 
-### 1️⃣ Clone the Project
+### 1️⃣ Clone Project
 
 ```bash
 git clone https://github.com/SunZhi-Will/snapraze.git
@@ -73,36 +82,36 @@ yarn dev
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 💻 Development Guide
+## 💻 Development
 
-- Modify files in the `pages` directory to update pages
-- All changes support hot reload
-- Use reusable components from the `components` directory
-- Create custom hooks in the `hooks` directory
+- Modify pages in `pages` directory
+- Hot reload supported
+- Use components from `components` directory
+- Create custom hooks in `hooks` directory
 
 ## 🌐 Deployment
 
-Recommended deployment using [Vercel Platform](https://vercel.com/new):
+Deploy using [Vercel Platform](https://vercel.com/new):
 
 1. Push code to GitHub
 2. Import project on Vercel
-3. Automatic deployment complete!
+3. Deploy complete
 
-## ��� Contributing
+## 🤝 Contributing
 
-All forms of contributions are welcome!
+Contributions welcome!
 
 1. Fork this project
-2. Create a new feature branch
-3. Commit your changes
-4. Push to the branch
+2. Create feature branch
+3. Commit changes
+4. Push to branch
 5. Create Pull Request
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is under [MIT License](LICENSE).
 
 ---
 

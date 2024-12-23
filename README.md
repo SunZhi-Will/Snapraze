@@ -2,7 +2,7 @@
 
 # 🚀 Snapraze
 
-### 現代化的Next.js Web應用程序
+### 圖片處理與儲存平台
 
 [![Next.js](https://img.shields.io/badge/Next.js-13.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
@@ -14,22 +14,31 @@
 
 ## 📖 專案介紹
 
-Snapraze是一個基於Next.js框架開發的現代化Web應用程序，結合了最新的前端技術，提供流暢的用戶體驗和強大的功能。
+Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用者可以上傳、管理、編輯和比較圖片。
 
-### ✨ 特色功能
+### ✨ 主要功能
 
-- 🎨 精美的響應式設計
-- 📤 直觀的文件上傳功能
-- 💎 現代化UI界面
-- 📱 完善的移動端適配
-- 🌙 深色模式支持
+- 🖼️ 雲端圖片儲存
+  - 圖片上傳與儲存
+  - 圖片管理系統
+  - 支援多種圖片格式
 
-## 🛠️ 技術棧
+- ✏️ 圖片編輯與標記
+  - 標記工具
+  - 編輯功能
+  - 即時預覽
 
-- **框架**: [Next.js](https://nextjs.org) - React框架
-- **語言**: [TypeScript](https://www.typescriptlang.org) - JavaScript的超集
-- **樣式**: [Tailwind CSS](https://tailwindcss.com) - 實用優先的CSS框架
-- **UI組件**: [Shadcn/ui](https://ui.shadcn.com) - 現代化UI組件庫
+- 🔍 原圖與編輯圖比對
+  - 並排比對
+  - 即時切換
+  - 修改記錄
+
+## 🛠️ 使用技術
+
+- [Next.js](https://nextjs.org) - React框架
+- [TypeScript](https://www.typescriptlang.org) - JavaScript的超集
+- [Tailwind CSS](https://tailwindcss.com) - CSS框架
+- [Shadcn/ui](https://ui.shadcn.com) - UI組件庫
 
 ## 📁 專案結構
 
@@ -44,7 +53,7 @@ snapraze/
 └── 📂 public/        # 靜態資源
 ```
 
-## 🚀 快速開始
+## 🚀 開始使用
 
 ### 1️⃣ 克隆專案
 
@@ -73,36 +82,36 @@ yarn dev
 pnpm dev
 ```
 
-在瀏覽器中打開 [http://localhost:3000](http://localhost:3000) 即可查看運行結果。
+在瀏覽器中打開 [http://localhost:3000](http://localhost:3000) 查看結果。
 
-## 💻 開發指南
+## 💻 開發說明
 
-- 修改 `pages` 目錄下的文件來更新頁面
-- 所有更改都支持熱重載
-- 使用 `components` 目錄下的可重用組件
-- 在 `hooks` 目錄下創建自定義hooks
+- 在 `pages` 目錄修改頁面
+- 支援熱重載
+- 使用 `components` 目錄的組件
+- 在 `hooks` 目錄建立自定義hooks
 
 ## 🌐 部署
 
-推薦使用 [Vercel平台](https://vercel.com/new) 進行部署：
+使用 [Vercel平台](https://vercel.com/new) 部署：
 
-1. 將代碼推送到GitHub
-2. 在Vercel上導入項目
-3. 自動部署完成！
+1. 推送代碼到GitHub
+2. 在Vercel導入專案
+3. 完成部署
 
-## 🤝 貢獻
+## 🤝 參與貢獻
 
-我們歡迎所有形式的貢獻！
+歡迎提交貢獻！
 
 1. Fork 本專案
-2. 創建新的功能分支
-3. 提交您的更改
-4. 推送到分支
-5. 創建Pull Request
+2. 建立功能分支
+3. 提交更改
+4. 推送分支
+5. 建立Pull Request
 
 ## 📄 授權
 
-本專案採用 [MIT License](LICENSE) 授權。
+本專案使用 [MIT License](LICENSE) 授權。
 
 ---
 
