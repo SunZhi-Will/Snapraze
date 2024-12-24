@@ -13,7 +13,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
 import Image from 'next/image';
-import { useQuery, useMutation } from '@tanstack/react-query';
 
 interface CanvasJSON {
     backgroundImage?: {
@@ -24,18 +23,10 @@ interface CanvasJSON {
     [key: string]: unknown;
 }
 
-interface CanvasState {
-    canvasData: fabric.CanvasOptions;
-    displayDimensions?: {
-        width: number;
-        height: number;
-    };
-}
-
 export const fetchCache = 'force-no-store'
 
 export default function EditPage({ params }: { params: { id: string } }) {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const [canvas, setCanvas] = useState<fabric.Canvas | null>(null);
     const [history, setHistory] = useState<string[]>([]);
@@ -44,65 +35,69 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const [isHistoryAction, setIsHistoryAction] = useState<boolean>(false);
     const [originalUrl, setOriginalUrl] = useState<string>('');
     const [isEdit, setIsEdit] = useState<boolean>(false);
+    const [isImage, setIsImage] = useState<boolean>(false);
     const [showOriginal, setShowOriginal] = useState<boolean>(false);
     const [showComparison, setShowComparison] = useState<boolean>(false);
-    const [editedImageUrl, setEditedImageUrl] = useState<string>('');
-    const [currentCanvasState, setCurrentCanvasState] = useState<fabric.CanvasOptions>();
     const router = useRouter();
 
-    const { data } = useQuery({
-        queryKey: ['image', params.id],
-        queryFn: async () => {
-            const imageId = params.id.replace(/--/g, '/');
-            const [imageResponse, stateResponse] = await Promise.all([
-                fetch(`/api/getImage?id=${imageId}`),
-                fetch(`/api/getCanvasState?id=${params.id}`)
-            ]);
-
-            const imageData = await imageResponse.json();
-            const stateData = await stateResponse.json();
-
-            return {
-                imageUrl: imageData.url,
-                canvasState: stateResponse.ok ? stateData : null
-            };
-        }
-    });
-
-    const saveMutation = useMutation({
-        mutationFn: async (canvasData: { json: fabric.CanvasOptions, dimensions: { width: number, height: number } }) => {
-            const response = await fetch('/api/saveEdit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: params.id,
-                    canvasData: canvasData.json,
-                    displayDimensions: canvasData.dimensions
-                }),
-            });
-            if (!response.ok) throw new Error('儲存失敗');
-            return response.json();
-        },
-        onSuccess: () => {
-            toast.success('儲存成功');
-        },
-        onError: () => {
-            toast.error('儲存失敗');
-        }
-    });
-
     useEffect(() => {
-        if (data) {
-            setOriginalUrl(data.imageUrl);
-            setIsEdit(!!data.canvasState);
+        const fetchImage = async () => {
+            try {
+                if (fabricCanvasRef.current) {
+                    fabricCanvasRef.current.dispose();
+                    fabricCanvasRef.current = null;
+                }
 
-            setTimeout(() => {
-                initCanvas(data.imageUrl, data.canvasState);
-            }, 0);
-        }
-    }, [data]);
+                const imageId = params.id.replace(/--/g, '/');
+                const response = await fetch(`/api/getImage?id=${imageId}`);
+                if (!response.ok) throw new Error('圖片載入失敗');
+                const data = await response.json();
 
-    const initCanvas = async (url: string, stateData: CanvasState | null) => {
+                setOriginalUrl(data.url);
+
+                // 首先獲取 Canvas 狀態
+                const stateResponse = await fetch(`/api/getCanvasState?id=${params.id}`);
+                if (stateResponse.ok) {
+                    const stateData = await stateResponse.json();
+                    if (stateData) {
+                        setIsEdit(true);
+                        setIsImage(true);
+                    } else {
+                        setIsEdit(false);
+                        setIsImage(false);
+                    }
+                } else {
+                    setIsEdit(false);
+                    setIsImage(false);
+                }
+
+                setTimeout(() => {
+                    initCanvas(data.url);
+                }, 0);
+
+            } catch (error) {
+                console.error('載入圖片錯誤:', error);
+                toast.error('載入圖片失敗');
+                router.push('/');
+            }
+        };
+
+        fetchImage();
+
+        return () => {
+            if (fabricCanvasRef.current) {
+                try {
+                    fabricCanvasRef.current.dispose();
+                    fabricCanvasRef.current = null;
+                    setCanvas(null);
+                } catch (error) {
+                    console.error('清理 canvas 時發生錯誤:', error);
+                }
+            }
+        };
+    }, [params.id, router]);
+
+    const initCanvas = async (url: string) => {
         if (!canvasRef.current) return;
 
         // 確保在初始化新的 Canvas 前，先清理現有的 Canvas
@@ -111,13 +106,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
             fabricCanvasRef.current = null;
             setCanvas(null);
         }
-
-        // 確保 DOM 元素已重置
-        const existingCanvas = canvasRef.current;
-        const newCanvasElement = document.createElement('canvas');
-        existingCanvas.parentNode?.replaceChild(newCanvasElement, existingCanvas);
-        // 使用 MutableRefObject 來允許修改 current 屬性
-        (canvasRef as React.MutableRefObject<HTMLCanvasElement>).current = newCanvasElement;
 
         // 等待一小段時間確保 DOM 完全更新
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -181,23 +169,27 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 setHistoryIndex(0);
             }, 100);
 
-            // 修改載入已保存狀態的部分
-            if (stateData) {
-                const { canvasData, displayDimensions } = stateData;
-                if (canvasData) {
-                    // 如果有已保存的狀態，載入它
-                    newCanvas.loadFromJSON(canvasData).then(() => {
-                        newCanvas.renderAll();
-                        // 設置保存的顯示尺寸
-                        if (displayDimensions) {
-                            newCanvas.setDimensions(displayDimensions);
-                        }
-                    });
+            if (showOriginal) {
+                // 嘗試載入已保存的編輯狀態
+                const response = await fetch(`/api/getCanvasState?id=${params.id}`);
+                if (response.ok) {
+                    const { canvasData, displayDimensions } = await response.json();
+
+                    if (canvasData) {
+                        // 如果有已保存的狀態，載入它
+                        newCanvas.loadFromJSON(canvasData).then(() => {
+                            newCanvas.renderAll();
+                            // 設置保存的顯示尺寸
+                            if (displayDimensions) {
+                                newCanvas.setDimensions(displayDimensions);
+                            }
+                        });
+                    }
                 }
             }
         } catch (error) {
             console.error('Canvas 初始化錯誤:', error);
-            // toast.error('畫布初始化失敗');
+            toast.error('畫布初始化失敗');
         }
     };
 
@@ -237,14 +229,38 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const saveCanvas = async () => {
         if (!canvas) return;
 
-        const canvasJSON = canvas.toJSON();
-        saveMutation.mutate({
-            json: canvasJSON,
-            dimensions: {
-                width: canvas.getWidth(),
-                height: canvas.getHeight()
+        toast.loading('正在儲存...', { id: 'save' });
+        try {
+            // 獲取 canvas 的 JSON 數據
+            const canvasJSON = canvas.toJSON();
+
+            // 發送到後端
+            const response = await fetch('/api/saveEdit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: params.id,
+                    canvasData: canvasJSON,
+                    // 保存當前的顯示尺寸
+                    displayDimensions: {
+                        width: canvas.getWidth(),
+                        height: canvas.getHeight()
+                    }
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('儲存失敗');
             }
-        });
+
+            await response.json();
+            toast.success('儲存成功', { id: 'save' });
+        } catch (error) {
+            console.error('儲存錯誤:', error);
+            toast.error('儲存失敗', { id: 'save' });
+        }
     };
 
     const saveToHistory = useCallback(() => {
@@ -397,77 +413,32 @@ export default function EditPage({ params }: { params: { id: string } }) {
         return () => window.removeEventListener('keydown', handleKeyboard);
     }, [canvas, undo, redo, deleteSelected]);
 
-    const toggleOriginal = async () => {
-        if (!showOriginal && canvas) {
-            // 切換到原圖之前，保存當前的編輯狀態
-            const canvasState = canvas.toJSON();
-            setCurrentCanvasState(canvasState);
-        }
-
-        if (fabricCanvasRef.current) {
-            try {
-                fabricCanvasRef.current.dispose();
-            } catch (error) {
-                console.error('清理 canvas 錯誤:', error);
-            }
-            fabricCanvasRef.current = null;
-            setCanvas(null);
-        }
-
+    const toggleOriginal = () => {
         setShowOriginal(!showOriginal);
-
-        // 如果從原圖切換回編輯視圖，使用保存的狀態
-        if (showOriginal && currentCanvasState) {
-            setTimeout(() => {
-                initCanvas(originalUrl, { canvasData: currentCanvasState });
-            }, 100);
-        }
+        initCanvas(originalUrl);
     };
 
-    const toggleComparison = async () => {
-        if (!showComparison && canvas) {
-            // 切換到比較模式時，保存當前的編輯狀態和預覽圖
-            const canvasState = canvas.toJSON();
-            setCurrentCanvasState(canvasState);
-
-            const dataURL = canvas.toDataURL({
-                format: 'png',
-                quality: 1,
-                multiplier: 1
-            });
-            setEditedImageUrl(dataURL);
-        }
-
-        if (fabricCanvasRef.current) {
-            try {
-                fabricCanvasRef.current.dispose();
-            } catch (error) {
-                console.error('清理 canvas 錯誤:', error);
-            }
-            fabricCanvasRef.current = null;
-            setCanvas(null);
-        }
-
-        setShowComparison(!showComparison);
-
-        // 如果從比較視圖切換回編輯視圖，使用保存的狀態
-        if (showComparison && currentCanvasState) {
-            setTimeout(() => {
-                initCanvas(originalUrl, { canvasData: currentCanvasState });
-            }, 100);
-        }
-    };
-
-    useEffect(() => {
-        // 組件卸載時清理 Canvas
-        return () => {
+    const toggleComparison = () => {
+        if (!showComparison) {
+            // 進入比較模式前先清理 canvas
             if (fabricCanvasRef.current) {
-                fabricCanvasRef.current.dispose();
+                try {
+                    fabricCanvasRef.current.clear();
+                    fabricCanvasRef.current.dispose();
+                } catch (error) {
+                    console.error('清理 canvas 時發生錯誤:', error);
+                }
                 fabricCanvasRef.current = null;
                 setCanvas(null);
             }
-        };
-    }, []);
+        } else {
+            // 返回編輯模式時，使用 requestAnimationFrame 確保 DOM 更新
+            requestAnimationFrame(() => {
+                initCanvas(originalUrl);
+            });
+        }
+        setShowComparison(!showComparison);
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 p-4">
@@ -556,6 +527,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
             {/* 畫布容器 */}
             <div className="mt-24 sm:mt-20">
                 {showComparison ? (
+                    // 比較模式：在小螢幕上改為上下排列
                     <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0">
                         <div className="relative">
                             <Image
@@ -571,7 +543,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                         </div>
                         <div className="relative">
                             <Image
-                                src={editedImageUrl || originalUrl}
+                                src={originalUrl}
                                 alt="編輯圖"
                                 width={800}
                                 height={600}
@@ -582,23 +554,10 @@ export default function EditPage({ params }: { params: { id: string } }) {
                             </div>
                         </div>
                     </div>
-                ) : showOriginal ? (
-                    <div className="flex justify-center px-2 sm:px-4">
-                        <div className="relative">
-                            <Image
-                                src={originalUrl}
-                                alt="原圖"
-                                width={800}
-                                height={600}
-                                className="max-w-full sm:max-h-[80vh] object-contain"
-                            />
-                        </div>
-                    </div>
                 ) : (
+                    // 編輯模式：確保畫布在小螢幕上也能完整顯示
                     <div className="flex justify-center px-2 sm:px-4">
-                        <div id="canvas-container">
-                            <canvas ref={canvasRef} />
-                        </div>
+                        <canvas ref={canvasRef} />
                     </div>
                 )}
             </div>
