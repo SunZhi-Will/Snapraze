@@ -35,7 +35,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const [isHistoryAction, setIsHistoryAction] = useState<boolean>(false);
     const [originalUrl, setOriginalUrl] = useState<string>('');
     const [isEdit, setIsEdit] = useState<boolean>(false);
-    const [isImage, setIsImage] = useState<boolean>(false);
     const [showOriginal, setShowOriginal] = useState<boolean>(false);
     const [showComparison, setShowComparison] = useState<boolean>(false);
     const router = useRouter();
@@ -61,14 +60,11 @@ export default function EditPage({ params }: { params: { id: string } }) {
                     const stateData = await stateResponse.json();
                     if (stateData) {
                         setIsEdit(true);
-                        setIsImage(true);
                     } else {
                         setIsEdit(false);
-                        setIsImage(false);
                     }
                 } else {
                     setIsEdit(false);
-                    setIsImage(false);
                 }
 
                 setTimeout(() => {
