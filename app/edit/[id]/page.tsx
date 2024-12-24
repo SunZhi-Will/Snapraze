@@ -37,6 +37,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
     const [isEdit, setIsEdit] = useState<boolean>(false);
     const [showOriginal, setShowOriginal] = useState<boolean>(false);
     const [showComparison, setShowComparison] = useState<boolean>(false);
+    const [editedImageUrl, setEditedImageUrl] = useState<string>('');
     const router = useRouter();
 
     useEffect(() => {
@@ -54,17 +55,24 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
                 setOriginalUrl(data.url);
 
-                // 首先獲取 Canvas 狀態
+                // 獲取 Canvas 狀態
                 const stateResponse = await fetch(`/api/getCanvasState?id=${params.id}`);
                 if (stateResponse.ok) {
                     const stateData = await stateResponse.json();
                     if (stateData) {
                         setIsEdit(true);
+                        // 創建臨時 canvas 來渲染編輯後的圖片
+                        const tempCanvas = document.createElement('canvas');
+                        const tempFabricCanvas = new fabric.Canvas(tempCanvas);
+
+                        await tempFabricCanvas.loadFromJSON(stateData.canvasData);
+                        setEditedImageUrl(tempCanvas.toDataURL('image/png'));
+
+                        // 清理臨時 canvas
+                        tempFabricCanvas.dispose();
                     } else {
                         setIsEdit(false);
                     }
-                } else {
-                    setIsEdit(false);
                 }
 
                 setTimeout(() => {
@@ -165,7 +173,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 setHistoryIndex(0);
             }, 100);
 
-            if (showOriginal) {
+            if (!showOriginal) {
                 // 嘗試載入已保存的編輯狀態
                 const response = await fetch(`/api/getCanvasState?id=${params.id}`);
                 if (response.ok) {
@@ -523,7 +531,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
             {/* 畫布容器 */}
             <div className="mt-24 sm:mt-20">
                 {showComparison ? (
-                    // 比較模式：在小螢幕上改為上下排列
                     <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-4 sm:space-y-0">
                         <div className="relative">
                             <Image
@@ -539,7 +546,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                         </div>
                         <div className="relative">
                             <Image
-                                src={originalUrl}
+                                src={editedImageUrl || originalUrl}
                                 alt="編輯圖"
                                 width={800}
                                 height={600}
@@ -551,7 +558,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
                         </div>
                     </div>
                 ) : (
-                    // 編輯模式：確保畫布在小螢幕上也能完整顯示
                     <div className="flex justify-center px-2 sm:px-4">
                         <canvas ref={canvasRef} />
                     </div>
