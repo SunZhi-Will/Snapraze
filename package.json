@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^latest",
+    "@prisma/client": "^6.1.0",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-separator": "^1.1.0",
     "@radix-ui/react-slot": "^1.1.0",
@@ -28,8 +28,7 @@
     "react-dom": "^18",
     "react-hot-toast": "^2.4.1",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7",
-    "prisma": "^latest"
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@types/fabric": "^5.3.9",
