@@ -101,7 +101,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
         };
     }, [params.id, router]);
 
-    const initCanvas = async (url: string) => {
+    const initCanvas = async (url: string, isOriginal: boolean = false) => {
         if (!canvasRef.current) return;
 
         // 確保在初始化新的 Canvas 前，先清理現有的 Canvas
@@ -173,7 +173,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 setHistoryIndex(0);
             }, 100);
 
-            if (!showOriginal) {
+            if (!isOriginal) {
                 // 嘗試載入已保存的編輯狀態
                 const response = await fetch(`/api/getCanvasState?id=${params.id}`);
                 if (response.ok) {
@@ -235,6 +235,15 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
         toast.loading('正在儲存...', { id: 'save' });
         try {
+            // 獲取當前的編輯圖
+            const editedImage = canvas.toDataURL({
+                multiplier: 2,
+                format: 'png',
+                quality: 0.8,
+                enableRetinaScaling: true
+            });
+            setEditedImageUrl(editedImage);
+
             // 獲取 canvas 的 JSON 數據
             const canvasJSON = canvas.toJSON();
 
@@ -247,7 +256,6 @@ export default function EditPage({ params }: { params: { id: string } }) {
                 body: JSON.stringify({
                     id: params.id,
                     canvasData: canvasJSON,
-                    // 保存當前的顯示尺寸
                     displayDimensions: {
                         width: canvas.getWidth(),
                         height: canvas.getHeight()
@@ -419,24 +427,61 @@ export default function EditPage({ params }: { params: { id: string } }) {
 
     const toggleOriginal = () => {
         setShowOriginal(!showOriginal);
-        initCanvas(originalUrl);
+        initCanvas(originalUrl, !showOriginal);
     };
 
-    const toggleComparison = () => {
+    const toggleComparison = async () => {
         if (!showComparison) {
-            // 進入比較模式前先清理 canvas
-            if (fabricCanvasRef.current) {
+            // 進入比較模式時，先獲取當前 canvas 的狀態
+            if (canvas) {
+                const editedImage = canvas.toDataURL({
+                    multiplier: 2,
+                    format: 'png',
+                    quality: 0.8,
+                    enableRetinaScaling: true
+                });
+                setEditedImageUrl(editedImage);
+            } else {
+                // 如果 canvas 不存在，從後端獲取已保存的狀態
                 try {
-                    fabricCanvasRef.current.clear();
-                    fabricCanvasRef.current.dispose();
+                    const stateResponse = await fetch(`/api/getCanvasState?id=${params.id}`);
+                    if (stateResponse.ok) {
+                        const stateData = await stateResponse.json();
+                        if (stateData?.canvasData) {
+                            const tempCanvas = document.createElement('canvas');
+                            const tempFabricCanvas = new fabric.Canvas(tempCanvas);
+
+                            // 設置與原圖相同的尺寸
+                            const img = document.createElement('img');
+                            img.src = originalUrl;
+                            await new Promise<void>((resolve) => {
+                                img.onload = () => {
+                                    tempCanvas.width = img.width;
+                                    tempCanvas.height = img.height;
+                                    resolve();
+                                };
+                            });
+
+                            await tempFabricCanvas.loadFromJSON(stateData.canvasData);
+                            tempFabricCanvas.renderAll();
+                            setEditedImageUrl(tempCanvas.toDataURL('image/png'));
+                            tempFabricCanvas.dispose();
+                        }
+                    }
                 } catch (error) {
-                    console.error('清理 canvas 時發生錯誤:', error);
+                    console.error('載入編輯狀態失敗:', error);
+                    toast.error('載入編輯狀態失敗');
                 }
+            }
+
+            // 清理現有的 canvas
+            if (fabricCanvasRef.current) {
+                fabricCanvasRef.current.dispose();
                 fabricCanvasRef.current = null;
                 setCanvas(null);
             }
         } else {
-            // 返回編輯模式時，使用 requestAnimationFrame 確保 DOM 更新
+            // 返回編輯模式
             requestAnimationFrame(() => {
                 initCanvas(originalUrl);
             });
