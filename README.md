@@ -6,11 +6,6 @@
 
 ### 圖片處理與儲存平台
 
-[<video width="100%" controls>
-  <source src="public/Snapraze.mp4" type="video/mp4">
-  您的瀏覽器不支援影片播放。
-</video>](https://github.com/user-attachments/assets/76b92794-7f5d-4fbe-8800-994a4a386cd3)
-
 [![Next.js](https://img.shields.io/badge/Next.js-13.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
@@ -22,6 +17,8 @@
 ## 📖 專案介紹
 
 Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用者可以上傳、管理、編輯和比較圖片。
+
+https://github.com/user-attachments/assets/76b92794-7f5d-4fbe-8800-994a4a386cd3
 
 ### ✨ 主要功能
 
