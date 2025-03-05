@@ -1,5 +1,7 @@
 <div align="center">
 
+![Snapraze Logo](public/logo.png)
+
 # 🚀 Snapraze
 
 ### Image Processing & Storage Platform

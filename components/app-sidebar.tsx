@@ -1,4 +1,5 @@
 import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import Image from "next/image"
 
 import {
     Sidebar,
@@ -45,7 +46,14 @@ export function AppSidebar() {
         <Sidebar collapsible="icon">
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>Snapraze</SidebarGroupLabel>
+
+                    <SidebarGroupLabel><Image
+                        src="/logo.png"
+                        alt="Snapraze Logo"
+                        width={32}
+                        height={32}
+                        className="h-auto w-auto"
+                    />Snapraze</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {items.map((item) => (

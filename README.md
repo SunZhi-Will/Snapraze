@@ -1,5 +1,7 @@
 <div align="center">
 
+![Snapraze Logo](public/logo.png)
+
 # 🚀 Snapraze
 
 ### 圖片處理與儲存平台
