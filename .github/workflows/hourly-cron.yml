@@ -1,0 +1,15 @@
+name: 每小時系統狀態更新
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # 每小時運行一次
+  workflow_dispatch:      # 允許手動觸發
+
+jobs:
+  update-system-status:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 更新系統狀態
+        run: |
+          curl -X GET https://${{ secrets.VERCEL_URL }}/api/cron 

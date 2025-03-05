@@ -27,3 +27,11 @@ model CanvasState {
   updatedAt        DateTime @updatedAt
   image            Image?   @relation(fields: [imageId], references: [id], onDelete: Cascade)
 }
+
+model SystemStatus {
+  id        String   @id @default(cuid())
+  lastCheck DateTime @default(now())
+  status    String
+  imageCount Int
+  createdAt DateTime @default(now())
+}
