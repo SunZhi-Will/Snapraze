@@ -18,7 +18,7 @@
 
 Snapraze提供圖片雲端儲存、編輯標記以及原圖比對功能。使用者可以上傳、管理、編輯和比較圖片。
 
-https://github.com/user-attachments/assets/76b92794-7f5d-4fbe-8800-994a4a386cd3
+https://github.com/user-attachments/assets/812f2d04-bec1-4be8-a63a-1371234dbc06
 
 ### ✨ 主要功能
 
