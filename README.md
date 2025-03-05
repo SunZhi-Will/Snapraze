@@ -6,6 +6,11 @@
 
 ### 圖片處理與儲存平台
 
+<video width="100%" controls>
+  <source src="public/Snapraze.mp4" type="video/mp4">
+  您的瀏覽器不支援影片播放。
+</video>
+
 [![Next.js](https://img.shields.io/badge/Next.js-13.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
@@ -89,7 +94,6 @@ snapraze/
 git clone https://github.com/SunZhi-Will/snapraze.git
 cd snapraze
 ```
-
 ### 2️⃣ 設定環境變數
 
 在專案根目錄建立 `.env` 和 `.env.local` 檔案：
@@ -187,3 +191,5 @@ pnpm dev
 Made with ❤️ by [SunZhi-Will](https://github.com/SunZhi-Will)
 
 </div>
+
+
