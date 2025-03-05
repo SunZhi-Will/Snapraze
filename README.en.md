@@ -6,11 +6,6 @@
 
 ### Image Processing & Storage Platform
 
-<video width="100%" controls>
-  <source src="public/Snapraze.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-
 [![Next.js](https://img.shields.io/badge/Next.js-13.0-black?style=for-the-badge&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com)
@@ -22,6 +17,8 @@
 ## 📖 Introduction
 
 Snapraze provides cloud storage for images, editing with annotation, and image comparison features. Users can upload, manage, edit and compare images.
+
+https://github.com/user-attachments/assets/812f2d04-bec1-4be8-a63a-1371234dbc06
 
 ### ✨ Main Features
 
