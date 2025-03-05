@@ -1,6 +1,6 @@
 <div align="center">
 
-![Snapraze Logo](public/logo.png)
+<img src="public/logo.png" alt="Snapraze Logo" width="120" />
 
 # 🚀 Snapraze
 
